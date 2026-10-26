@@ -28,6 +28,7 @@ let live = false;            // true once ticks are arriving
 let lastMessageAt = 0;
 let watchTimer = null;
 let seq = 0;
+let textLogs = 0;
 const subscribed = new Set();  // app tokens
 const lastTicks = new Map();
 const listeners = [];
@@ -60,6 +61,11 @@ function createTicker() {
   });
 
   ws.on("tick", (m) => {
+    // Non-tick messages (subscribe acks, errors) arrive as raw text. Log the first few.
+    if (typeof m === "string") {
+      if (textLogs < 5) { textLogs++; logger.warn(`[ticker] Server message: ${m.slice(0, 300)}`); }
+      return;
+    }
     const id = internalOf(String(m?.token ?? "").replace(/\0/g, "").trim());
     if (!id) return;
     const price = Number(m.last_traded_price) / 100;   // paise → rupees
@@ -127,4 +133,9 @@ function unsubscribe(tokens) {
 function getLastTick(token) { return lastTicks.get(token) || null; }
 function isConnected() { return live; }
 
-module.exports = { start, restart, subscribe, unsubscribe, onTicks, getLastTick, isConnected };
+/** Milliseconds since the last tick (or connection attempt). null if never started. */
+function msSinceLastTick() {
+  return lastMessageAt ? Date.now() - lastMessageAt : null;
+}
+
+module.exports = { start, restart, subscribe, unsubscribe, onTicks, getLastTick, isConnected, msSinceLastTick };
