@@ -1,0 +1,69 @@
+# Render Blueprint — creates the backend (Node), frontend (static site) and PostgreSQL.
+# Deploy: Render dashboard → New → Blueprint → select this repo.
+# Secrets are marked sync: false — Render asks for them in the dashboard; they are never stored in git.
+
+databases:
+  - name: algotrade-db
+    databaseName: algotrade
+    plan: free            # free Postgres expires after 30 days — upgrade before then or switch to a paid plan
+
+services:
+  - type: web
+    name: algotrade-backend
+    runtime: node
+    rootDir: backend
+    plan: starter         # always-on: the market feed, scanner and scheduler need a running process (free tier sleeps)
+    buildCommand: npm ci
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: ANGEL_API_KEY                      # SmartAPI app key
+        sync: false
+      - key: ANGEL_CLIENT_CODE                  # Angel One client ID
+        sync: false
+      - key: ANGEL_PIN                          # login PIN (MPIN)
+        sync: false
+      - key: ANGEL_TOTP_SECRET                  # base32 TOTP key from your authenticator setup
+        sync: false
+      - key: FRONTEND_ORIGIN                   # https://algotrade-frontend.onrender.com
+        sync: false
+      - key: HAS_HISTORICAL_SUBSCRIPTION
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: algotrade-db
+          property: connectionString
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: TWILIO_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+      - key: WHATSAPP_TO
+        sync: false
+
+  - type: web
+    name: algotrade-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite                          # single-page app: every path serves index.html
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL                      # https://algotrade-backend.onrender.com/api
+        sync: false
+      - key: VITE_SOCKET_URL                   # https://algotrade-backend.onrender.com
+        sync: false

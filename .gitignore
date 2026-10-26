@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+backend/.env
+frontend/.env
+backend/token.json        # Kite access token — never commit
+backend/data/             # local JSON state
+*.log
+.DS_Store
+backend/scripts/output/
