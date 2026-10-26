@@ -12,7 +12,7 @@ services:
     name: algotrade-backend
     runtime: node
     rootDir: backend
-    plan: starter         # always-on: the market feed, scanner and scheduler need a running process (free tier sleeps)
+    plan: free         # always-on: the market feed, scanner and scheduler need a running process (free tier sleeps)
     buildCommand: npm ci
     startCommand: node server.js
     healthCheckPath: /
